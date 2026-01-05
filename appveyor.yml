@@ -1,0 +1,124 @@
+# ----------------------------------------------------------------------
+# Wordless: CI - AppVeyor
+# Copyright (C) 2018-2024  Ye Lei (叶磊)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ----------------------------------------------------------------------
+
+version: 'Build {build}'
+
+environment:
+  matrix:
+    # Windows
+    - APPVEYOR_BUILD_WORKER_IMAGE: "Visual Studio 2019"
+      PYTHON: "C:/Python310-x64"
+    # MacOS
+    - APPVEYOR_BUILD_WORKER_IMAGE: "macos-catalina"
+      PYTHON: "~/venv3.10"
+    # Linux
+    - APPVEYOR_BUILD_WORKER_IMAGE: "Ubuntu1804"
+      PYTHON: "$HOME/venv3.10"
+
+cache:
+  # Windows
+  - '%LOCALAPPDATA%/pip/Cache -> requirements/requirements_tests.txt'
+  # macOS
+  - '/Users/appveyor/Library/Caches/pip -> requirements/requirements_tests.txt'
+  # Linux
+  - '/home/appveyor/.cache/pip -> requirements/requirements_tests.txt'
+
+stack: python 3.10
+
+build: off
+
+for:
+  # Windows
+  -
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: "Visual Studio 2019"
+
+    install:
+      - cmd: set PATH=%PYTHON%;%PYTHON%/Scripts;%PATH%
+      - python -m pip install --upgrade pip setuptools
+      - pip install --requirement requirements/requirements_tests.txt
+      # Download models and data files
+      - python utils/wl_downloader_ci.py
+
+    # Run tests
+    test_script:
+      - pytest tests/tests_nlp/tests_spacy/test_spacy_eng.py
+      - pytest tests/tests_nlp/tests_stanza/test_stanza_eng.py
+
+      - pytest tests/tests_nlp/test_word_tokenization.py
+      - pytest tests/tests_nlp/test_pos_tagging.py
+      - pytest tests/tests_nlp/test_lemmatization.py
+
+      - pytest tests/tests_nlp/ --ignore=tests/tests_nlp/tests_spacy --ignore=tests/tests_nlp/tests_stanza --ignore=tests/tests_nlp/test_word_tokenization.py --ignore=tests/tests_nlp/test_pos_tagging.py --ignore=tests/tests_nlp/test_lemmatization.py
+      - pytest --ignore=tests/tests_nlp
+
+  # macOS
+  -
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: "macos-catalina"
+
+    install:
+      - cmd: set PATH=%PYTHON%;%PYTHON%/Scripts;%PATH%
+      # Install dependencies
+      - python -m pip install --upgrade pip setuptools
+      - pip install --requirement requirements/requirements_tests.txt
+      # Download models and data files
+      - python utils/wl_downloader_ci.py
+
+    # Run tests
+    test_script:
+      - pytest tests/tests_nlp/tests_spacy/test_spacy_eng.py
+      - pytest tests/tests_nlp/tests_stanza/test_stanza_eng.py
+
+      - pytest tests/tests_nlp/test_word_tokenization.py
+      - pytest tests/tests_nlp/test_pos_tagging.py
+      - pytest tests/tests_nlp/test_lemmatization.py
+
+      - pytest tests/tests_nlp/ --ignore=tests/tests_nlp/tests_spacy --ignore=tests/tests_nlp/tests_stanza --ignore=tests/tests_nlp/test_word_tokenization.py --ignore=tests/tests_nlp/test_syl_tokenization.py --ignore=tests/tests_nlp/test_lemmatization.py
+      - pytest --ignore=tests/tests_nlp
+
+  # Ubuntu
+  -
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: "Ubuntu1804"
+
+    install:
+      - cmd: set PATH=%PYTHON%;%PYTHON%/Scripts;%PATH%
+      # Install dependencies
+      - python -m pip install --upgrade pip setuptools
+      - pip install --requirement requirements/requirements_tests.txt
+      # Download models and data files
+      - python utils/wl_downloader_ci.py
+
+    # Run tests
+    test_script:
+      # Fix PyQt
+      - export QT_QPA_PLATFORM=offscreen
+
+      - pytest tests/tests_nlp/tests_spacy/test_spacy_eng.py
+      - pytest tests/tests_nlp/tests_stanza/test_stanza_eng.py
+
+      - pytest tests/tests_nlp/test_word_tokenization.py
+      - pytest tests/tests_nlp/test_pos_tagging.py
+      - pytest tests/tests_nlp/test_lemmatization.py
+
+      - pytest tests/tests_nlp/ --ignore=tests/tests_nlp/tests_spacy --ignore=tests/tests_nlp/tests_stanza --ignore=tests/tests_nlp/test_word_tokenization.py --ignore=tests/tests_nlp/test_pos_tagging.py --ignore=tests/tests_nlp/test_lemmatization.py
+      - pytest --ignore=tests/tests_nlp --ignore=tests/tests_settings

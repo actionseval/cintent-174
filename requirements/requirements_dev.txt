@@ -1,0 +1,73 @@
+# ----------------------------------------------------------------------
+# Wordless: Requirements files - Development
+# Copyright (C) 2018-2024  Ye Lei (叶磊)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ----------------------------------------------------------------------
+
+# NLP
+botok
+charset-normalizer
+khmer-nltk
+laonlp
+lingua-language-detector
+nltk
+pyphen
+pythainlp
+python-mecab-ko
+sacremoses
+simplemma
+stanza
+underthesea
+vaderSentiment
+
+## pymorphy3
+pymorphy3
+pymorphy3-dicts-ru
+pymorphy3-dicts-uk
+
+## spaCy
+spacy
+spacy-lookups-data
+spacy-pkuseg
+
+## SudachiPy
+sudachipy
+sudachidict-core
+
+# Micellaneous
+beautifulsoup4
+lxml
+matplotlib
+networkx
+numpy
+opencc-python-reimplemented
+openpyxl
+pyinstaller
+pypdf
+pyqt5
+python-docx
+requests
+scipy
+tzdata; sys_platform == 'win32' # Required by PyThaiNLP on Windows
+wordcloud
+
+# For PyTorch on Linux using CPU
+# See: https://stackoverflow.com/a/57060441
+--index-url=https://download.pytorch.org/whl/cpu
+--extra-index-url=https://pypi.org/simple
+torch
+
+# spaCy models
+en_core_web_trf-3.7.3-py3-none-any.whl

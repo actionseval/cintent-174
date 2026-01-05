@@ -1,0 +1,208 @@
+# ----------------------------------------------------------------------
+# Wordless: Tests - Measures - Lexical diversity
+# Copyright (C) 2018-2024  Ye Lei (叶磊)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ----------------------------------------------------------------------
+
+import numpy
+import scipy
+
+from tests import wl_test_init
+from wordless.wl_measures import wl_measures_lexical_diversity
+
+main = wl_test_init.Wl_Test_Main()
+settings = main.settings_custom['measures']['lexical_diversity']
+
+TOKENS_10 = ['This', 'is', 'a', 'sentence', '.'] * 2
+TOKENS_100 = ['This', 'is', 'a', 'sentence', '.'] * 20
+TOKENS_101 = ['This', 'is', 'a', 'sentence', '.'] * 20 + ['another']
+TOKENS_1000 = ['This', 'is', 'a', 'sentence', '.'] * 200
+
+# Reference: Popescu, I.-I. (2009). Word frequency studies (p. 26). Mouton de Gruyter.
+TOKENS_225 = [1] * 11 + [2, 3] * 9 + [4] * 7 + [5, 6] * 6 + [7, 8] * 5 + list(range(9, 16)) * 4 + list(range(16, 22)) * 3 + list(range(22, 40)) * 2 + list(range(40, 125))
+
+def test_cttr():
+    cttr = wl_measures_lexical_diversity.cttr(main, TOKENS_100)
+
+    assert cttr == 5 / (2 * 100) ** 0.5
+
+# Reference: Fisher, R. A., Steven, A. C., & Williams, C. B. (1943). The relation between the number of species and the number of individuals in a random sample of an animal population. Journal of Animal Ecology, 12(1), 56. https://doi.org/10.2307/1411
+def test_fishers_index_of_diversity():
+    tokens = [str(i) for i in range(240)] + ['0'] * (15609 - 240)
+    alpha = wl_measures_lexical_diversity.fishers_index_of_diversity(main, tokens)
+
+    assert round(alpha, 3) == 40.247
+
+def test_herdans_vm():
+    vm = wl_measures_lexical_diversity.herdans_vm(main, TOKENS_100)
+
+    assert vm == (5 * 20 ** 2) / (100 ** 2) - 1 / 5
+
+def test_hdd():
+    hdd_100 = wl_measures_lexical_diversity.hdd(main, TOKENS_100)
+
+    assert hdd_100 == (1 - scipy.stats.hypergeom.pmf(k = 0, M = 100, n = 20, N = 42)) * (1 / 42) * 5
+
+def test_logttr():
+    settings['logttr']['variant'] = 'Herdan'
+    logttr_herdan = wl_measures_lexical_diversity.logttr(main, TOKENS_100)
+    settings['logttr']['variant'] = 'Somers'
+    logttr_somers = wl_measures_lexical_diversity.logttr(main, TOKENS_100)
+    settings['logttr']['variant'] = 'Rubet'
+    logttr_rubet = wl_measures_lexical_diversity.logttr(main, TOKENS_100)
+    settings['logttr']['variant'] = 'Maas'
+    logttr_maas = wl_measures_lexical_diversity.logttr(main, TOKENS_100)
+    settings['logttr']['variant'] = 'Dugast'
+    logttr_dugast = wl_measures_lexical_diversity.logttr(main, TOKENS_100)
+
+    num_types = 5
+    num_tokens = 100
+
+    assert logttr_herdan == numpy.log(num_types) / numpy.log(num_tokens)
+    assert logttr_somers == numpy.log(numpy.log(num_types)) / numpy.log(numpy.log(num_tokens))
+    assert logttr_rubet == numpy.log(num_types) / numpy.log(numpy.log(num_tokens))
+    assert logttr_maas == (numpy.log(num_tokens) - numpy.log(num_types)) / (numpy.log(num_tokens) ** 2)
+    assert logttr_dugast == (numpy.log(num_tokens) ** 2) / (numpy.log(num_tokens) - numpy.log(num_types))
+
+def test_msttr():
+    msttr_100 = wl_measures_lexical_diversity.msttr(main, TOKENS_101)
+    settings['msttr']['num_tokens_in_each_seg'] = 1000
+    msttr_1000 = wl_measures_lexical_diversity.msttr(main, TOKENS_101)
+
+    assert msttr_100 == 5 / 100
+    assert msttr_1000 == 0
+
+def test_mtld():
+    mtld_100 = wl_measures_lexical_diversity.mtld(main, TOKENS_100)
+
+    assert mtld_100 == 100 / (14 + 0 / 0.28)
+
+def test_mattr():
+    mattr_100 = wl_measures_lexical_diversity.mattr(main, TOKENS_100)
+    mattr_1000 = wl_measures_lexical_diversity.mattr(main, TOKENS_1000)
+
+    assert mattr_100 == wl_measures_lexical_diversity.ttr(main, TOKENS_100)
+    assert mattr_1000 == 5 / 500
+
+# Reference: Popescu I.-I., Mačutek, J, & Altmann, G. (2008). Word frequency and arc length. Glottometrics, 17, 21, 33.
+def test_popescu_macutek_altmanns_b1_b2_b3_b4_b5():
+    b1, b2, b3, b4, b5 = wl_measures_lexical_diversity.popescu_macutek_altmanns_b1_b2_b3_b4_b5(main, TOKENS_225)
+
+    assert round(b1, 3) == 0.969
+    assert round(b2, 3) == 0.527
+    assert round(b3, 3) == 0.961
+    assert round(b4, 3) == 0.078
+    assert round(b5, 3) == 0.664
+
+# Reference: Popescu, I.-I. (2009). Word frequency studies (p. 30). Mouton de Gruyter.
+def test_popescus_r1():
+    r1 = wl_measures_lexical_diversity.popescus_r1(main, TOKENS_225)
+
+    assert round(r1, 4) == 0.8667
+
+# Reference: Popescu, I.-I. (2009). Word frequency studies (p. 39). Mouton de Gruyter.
+def test_popescus_r2():
+    r2 = wl_measures_lexical_diversity.popescus_r2(main, TOKENS_225)
+
+    assert round(r2, 3) == 0.871
+
+# Reference: Popescu, I.-I. (2009). Word frequency studies (p. 51). Mouton de Gruyter.
+def test_popescus_r3():
+    r3 = wl_measures_lexical_diversity.popescus_r3(main, TOKENS_225)
+
+    assert round(r3, 4) == 0.3778
+
+# Reference: Popescu, I.-I. (2009). Word frequency studies (p. 59). Mouton de Gruyter.
+def test_popescus_r4():
+    r4 = wl_measures_lexical_diversity.popescus_r4(main, TOKENS_225)
+
+    assert round(r4, 4) == 0.6344
+
+# Reference: Popescu, I.-I. (2009). Word frequency studies (pp. 170, 172). Mouton de Gruyter.
+def test_repeat_rate():
+    settings['repeat_rate']['use_data'] = 'Rank-frequency distribution'
+    rr_distribution = wl_measures_lexical_diversity.repeat_rate(main, TOKENS_225)
+    settings['repeat_rate']['use_data'] = 'Frequency spectrum'
+    rr_spectrum = wl_measures_lexical_diversity.repeat_rate(main, TOKENS_225)
+
+    assert round(rr_distribution, 4) == 0.0153
+    assert round(rr_spectrum, 4) == 0.4974
+
+def test_rttr():
+    rttr = wl_measures_lexical_diversity.rttr(main, TOKENS_100)
+
+    assert rttr == 5 / 100 ** 0.5
+
+# Reference: Popescu, I.-I. (2009). Word frequency studies (pp. 176, 178). Mouton de Gruyter.
+def test_shannon_entropy():
+    settings['shannon_entropy']['use_data'] = 'Rank-frequency distribution'
+    h_distribution = wl_measures_lexical_diversity.shannon_entropy(main, TOKENS_225)
+    settings['shannon_entropy']['use_data'] = 'Frequency spectrum'
+    h_spectrum = wl_measures_lexical_diversity.shannon_entropy(main, TOKENS_225)
+
+    assert round(h_distribution, 4) == 6.5270
+    assert round(h_spectrum, 4) == 1.6234
+
+def test_simpsons_l():
+    l = wl_measures_lexical_diversity.simpsons_l(main, TOKENS_100)
+
+    assert l == (5 * 20 ** 2 - 100) / (100 * (100 - 1))
+
+def test_ttr():
+    ttr = wl_measures_lexical_diversity.ttr(main, TOKENS_100)
+
+    assert ttr == 5 / 100
+
+def test_vocdd():
+    vocdd_10 = wl_measures_lexical_diversity.vocdd(main, TOKENS_10)
+    vocdd_100 = wl_measures_lexical_diversity.vocdd(main, TOKENS_100)
+    vocdd_1000 = wl_measures_lexical_diversity.vocdd(main, TOKENS_1000)
+
+    assert vocdd_10 > 0
+    assert vocdd_100 > 0
+    assert vocdd_1000 > 0
+
+def test_yules_characteristic_k():
+    k = wl_measures_lexical_diversity.yules_characteristic_k(main, TOKENS_100)
+
+    assert k == 10000 * ((5 * 20 ** 2 - 100) / (100 ** 2))
+
+def test_yules_index_of_diversity():
+    index_of_diversity = wl_measures_lexical_diversity.yules_index_of_diversity(main, TOKENS_100)
+
+    assert index_of_diversity == (100 ** 2) / (5 * 20 ** 2 - 100)
+
+if __name__ == '__main__':
+    test_cttr()
+    test_fishers_index_of_diversity()
+    test_herdans_vm()
+    test_hdd()
+    test_logttr()
+    test_msttr()
+    test_mtld()
+    test_mattr()
+    test_popescu_macutek_altmanns_b1_b2_b3_b4_b5()
+    test_popescus_r1()
+    test_popescus_r2()
+    test_popescus_r3()
+    test_popescus_r4()
+    test_repeat_rate()
+    test_rttr()
+    test_shannon_entropy()
+    test_simpsons_l()
+    test_ttr()
+    test_vocdd()
+    test_yules_characteristic_k()
+    test_yules_index_of_diversity()
